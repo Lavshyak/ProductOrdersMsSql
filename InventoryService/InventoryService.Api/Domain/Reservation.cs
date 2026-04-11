@@ -2,7 +2,7 @@
 
 public sealed class Reservation
 {
-    public Guid ReservationId { get; set; }
+    public Guid Id { get; set; }
 
     public DateTimeOffset CreatedAtUtc { get; set; }
 

@@ -51,7 +51,7 @@ app.MapPost("/reservations", async (ReserveRequest request, IInventoryService se
 
 app.MapPost("/reservations/cancel", async (ReservationActionRequest request, IInventoryService service, CancellationToken ct) =>
 {
-    var result = await service.CancelReservationAsync(request.ReservationId, "manual_cancel", ct);
+    var result = await service.CancelReservationAsync(request.ReservationId, ct);
     if (result.IsSuccess)
     {
         return Results.Ok();

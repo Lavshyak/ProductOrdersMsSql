@@ -18,12 +18,7 @@ public sealed class StaleReservationCleanupWorker(
             {
                 using var scope = scopeFactory.CreateScope();
                 var inventoryService = scope.ServiceProvider.GetRequiredService<IInventoryService>();
-                var cancelledCount = await inventoryService.CancelExpiredReservationsAsync(stoppingToken);
-
-                if (cancelledCount > 0)
-                {
-                    logger.LogInformation("Cancelled {CancelledCount} expired reservations.", cancelledCount);
-                }
+                await inventoryService.CancelExpiredReservationsAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

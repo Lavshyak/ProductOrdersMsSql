@@ -1,0 +1,12 @@
+﻿лучшая последовательность UPD блокировок:
+StockItems Id ASC
+Reservations Id ASC
+ReservationItems (ReservationId, StockItemId) ASC
+
+
+
+CREATE TYPE dbo.GuidList AS TABLE
+(
+    Id UNIQUEIDENTIFIER NOT NULL
+);
+GO

@@ -1,4 +1,5 @@
-﻿# InventoryService
+﻿не актуально.
+# InventoryService
 
 Сервис кеширует остатки товара и управляет резервами, чтобы не ходить к продавцу на каждый запрос.
 
@@ -19,7 +20,7 @@
 - `ConnectionStrings:InventoryDb` - строка подключения к MS SQL Server
 - `ReservationCleanup:ReservationTtl` - TTL резерва
 - `ReservationCleanup:PollingInterval` - частота фоновой проверки
-- `ReservationCleanup:BatchSize` - размер батча на один проход
+- `ReservationCleanup:BatchSize` - размер батча на один проход (вроде бы неактуально)
 
 ## Быстрый запуск
 
