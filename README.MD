@@ -36,7 +36,7 @@ PayloadJson:`{"ReservationId":"BD6F721C-3A89-DE9F-7AF6-019DFE3E4D44"}` - MS SQL 
 Внутренние технические моменты:
 - В качестве идентификаторов в СУБД используется GUID v7, байты которого переставлены в порядке сортировки, оптимизированном для MS SQL Server. Swapping туда-обратно в Shared/GuidExtensions.cs.
 - ReservationItems имеет FK на Reservations, но на StockItems не имеет.
-- Выбранная последовательность UPDLOCK блокировок:\
+- Выбранная последовательность UPDLOCK+ блокировок:\
   1 - StockItems Id ASC\
   2 - Reservations Id ASC\
   3 - ReservationItems (ReservationId, ProductId) ASC (не соблюдается)
