@@ -8,7 +8,6 @@ namespace InventoryService.Api.Application;
 
 public partial class InventoryService
 {
-    // TODO: перепроверить, не актуально для текущих названий колонок
     public async Task<OperationResult> ReserveAsync(Guid reservationId,
         IReadOnlyCollection<(Guid ProductId, int Quantity)> items, CancellationToken cancellationToken)
     {
