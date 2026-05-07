@@ -7,7 +7,12 @@ namespace InventoryService.Api.Application;
 
 public partial class InventoryService
 {
-    private async Task<OperationResult> RemoveReservationAsync(Guid reservationId, bool updateStock,
+    private enum WriteOffOrCancel
+    {
+        WriteOff,
+        Cancel
+    }
+    private async Task<OperationResult> RemoveReservationAsync(Guid reservationId, WriteOffOrCancel writeOffOrCancel,
         CancellationToken cancellationToken)
     {
         await using var transaction =
@@ -15,9 +20,20 @@ public partial class InventoryService
 
         var reservationIdMSS = reservationId.SwapV7ToMSS();
 
-        if (updateStock)
+        await dbContext.Database.ExecuteSqlRawAsync(
+            """
+            SELECT 1
+            FROM StockItems si WITH (UPDLOCK)
+            WHERE si.Id = @reservationId
+            ORDER BY si.Id
+            """,
+            [
+                new SqlParameter("@reservationId", reservationIdMSS)
+            ],
+            cancellationToken);
+        
+        if (writeOffOrCancel == WriteOffOrCancel.Cancel)
         {
-            // TODO: повтор на дедлоке
             await dbContext.Database.ExecuteSqlRawAsync(
                 """
                 UPDATE si
@@ -27,13 +43,34 @@ public partial class InventoryService
                     SELECT * 
                     FROM ReservationItems ri
                     WHERE ri.ReservationId = @reservationId
-                    ORDER BY ri.ProductId
                 ) ri ON ri.ProductId = si.Id
                 """,
                 [
                     new SqlParameter("@reservationId", reservationIdMSS)
                 ],
                 cancellationToken);
+        }
+        else if(writeOffOrCancel == WriteOffOrCancel.WriteOff)
+        {
+            await dbContext.Database.ExecuteSqlRawAsync(
+                """
+                UPDATE si
+                SET TotalQuantity = si.TotalQuantity - ri.Quantity
+                FROM StockItems si
+                INNER JOIN (
+                    SELECT * 
+                    FROM ReservationItems ri
+                    WHERE ri.ReservationId = @reservationId
+                ) ri ON ri.ProductId = si.Id
+                """,
+                [
+                    new SqlParameter("@reservationId", reservationIdMSS)
+                ],
+                cancellationToken);
+        }
+        else
+        {
+            throw new ArgumentOutOfRangeException(nameof(writeOffOrCancel), writeOffOrCancel, null);
         }
         
         // далее должно надежно работать, но лень нормально переписывать

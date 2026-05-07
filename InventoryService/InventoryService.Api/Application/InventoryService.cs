@@ -16,10 +16,10 @@ public sealed partial class InventoryService(
 {
     public Task<OperationResult> CancelReservationAsync(Guid reservationId,
         CancellationToken cancellationToken)
-        => RemoveReservationAsync(reservationId, updateStock: true, cancellationToken);
+        => RemoveReservationAsync(reservationId, WriteOffOrCancel.Cancel, cancellationToken);
 
     public Task<OperationResult> WriteOffReservationAsync(Guid reservationId, CancellationToken cancellationToken)
-        => RemoveReservationAsync(reservationId, updateStock: false, cancellationToken);
+        => RemoveReservationAsync(reservationId, WriteOffOrCancel.WriteOff, cancellationToken);
 
     public async Task<int?> GetAvailableQuantityAsync(Guid productId, CancellationToken cancellationToken)
     {

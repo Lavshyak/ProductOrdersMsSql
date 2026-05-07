@@ -26,16 +26,16 @@ public partial class InventoryService
             var existingStockMaybe =
                 dbContext.StockItems.AsNoTracking().FirstOrDefault(x => x.Id == productIdMSS);
 
-            totalQuantityVersion ??= existingStockMaybe?.TotalQuantityVersion;
+            totalQuantityVersion ??= existingStockMaybe?.TotalQuantityVersionForSetStock;
             
-            if (totalQuantityVersion != existingStockMaybe?.TotalQuantityVersion)
+            if (totalQuantityVersion != existingStockMaybe?.TotalQuantityVersionForSetStock)
             {
                 // кто-то уже обновил totalQuantity
                 // тоже самое, как если бы этот запрос установил количество, а другой перезаписал чуть позже
                 return OperationResult.Success();
             }
 
-            totalQuantityVersion ??= existingStockMaybe?.TotalQuantityVersion;
+            totalQuantityVersion ??= existingStockMaybe?.TotalQuantityVersionForSetStock;
 
             // попытка добавления
             if (existingStockMaybe is null)
@@ -80,7 +80,7 @@ public partial class InventoryService
                     // language=sql
                     """
                     SELECT * FROM StockItems si WITH (UPDLOCK)
-                    WHERE si.Id = @productId AND si.TotalQuantityVersion = @totalQuantityVersion
+                    WHERE si.Id = @productId AND si.TotalQuantityVersionForSetStock = @totalQuantityVersion
                     """,
                     new SqlParameter("@productId", productIdMSS),
                     new SqlParameter("@totalQuantityVersion", totalQuantityVersionTmp)
@@ -97,7 +97,7 @@ public partial class InventoryService
                 if (newAvailableQuantity >= 0)
                 {
                     stockItemTracked.TotalQuantity = newTotalQuantity;
-                    stockItemTracked.TotalQuantityVersion++;
+                    stockItemTracked.TotalQuantityVersionForSetStock++;
                     stockItemTracked.AvailableQuantity = newAvailableQuantity;
 
                     await dbContext.SaveChangesAsync(cancellationToken);

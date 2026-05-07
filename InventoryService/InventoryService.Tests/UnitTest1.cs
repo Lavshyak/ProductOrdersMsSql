@@ -38,6 +38,7 @@ public sealed class InventoryServiceTests : IClassFixture<SqlServerDatabaseFixtu
         {
             await _fixture.ResetDatabaseAsync();
         }
+
         await using var db = CreateDbContext();
 
         for (int i = 0; i < iterations; i++)
@@ -177,7 +178,7 @@ public sealed class InventoryServiceTests : IClassFixture<SqlServerDatabaseFixtu
     public async Task CancelExpiredReservationsWorks()
     {
         await _fixture.ResetDatabaseAsync();
-        
+
         await InsertManyRandom(1, 20);
         await using var dbOldState = CreateDbContext();
         await dbOldState.StockItems.LoadAsync();
@@ -203,7 +204,7 @@ public sealed class InventoryServiceTests : IClassFixture<SqlServerDatabaseFixtu
         await dbActualState.StockItems.LoadAsync();
         await dbActualState.Reservations.LoadAsync();
         await dbActualState.ReservationItems.LoadAsync();
-        
+
         var actualReservations = dbActualState.Reservations.Local;
         var newReservations = dbNewState.Reservations.Local;
         var oldReservations = dbOldState.Reservations.Local;
@@ -213,12 +214,12 @@ public sealed class InventoryServiceTests : IClassFixture<SqlServerDatabaseFixtu
             dbActualState.StockItems.Local.Where(si => dbOldState.StockItems.Local.Any(siOld => siOld.Id == si.Id))
                 .ToArray();
         Assert.True(siOldActual.All(si => si.AvailableQuantity == si.TotalQuantity));
-        
+
         // удалены старые Reservations
         var rOldActual = actualReservations
             .Where(r => oldReservations.Any(rOld => rOld.Id == r.Id)).ToArray();
         Assert.Empty(rOldActual);
-        
+
         // остались все новые Reservations
         // ReSharper disable once ReplaceWithSingleCallToCount
         Assert.Equal(actualReservations.Count,
@@ -281,6 +282,72 @@ public sealed class InventoryServiceTests : IClassFixture<SqlServerDatabaseFixtu
                           "\n");*/
         Assert.True(await db.Reservations.AllAsync(r =>
             ((IEnumerable<Guid>)reservationIdsMSSAscShouldExist).Contains(r.Id)));
+    }
+
+    [Fact]
+    public async Task AvailableAndTotalQuantityIsCorrectWhenWriteOffThenSetStockToIncreasedQuantity()
+    {
+        await _fixture.ResetDatabaseAsync();
+        await using var db = CreateDbContext();
+        var productId = Guid.CreateVersion7();
+        db.StockItems.Add(new StockItem
+        {
+            Id = productId.SwapV7ToMSS(),
+            TotalQuantity = 10,
+            AvailableQuantity = 10,
+        });
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        await using var serviceDb = CreateDbContext();
+        var service = CreateService(serviceDb);
+
+        var reservationId = Guid.CreateVersion7();
+        Assert.True((await service.ReserveAsync(reservationId, [(productId, 5)], CancellationToken.None)).IsSuccess);
+        serviceDb.ChangeTracker.Clear();
+        Assert.True((await db.StockItems.AsNoTracking().SingleAsync()).AvailableQuantity == 5);
+        Assert.True((await db.StockItems.AsNoTracking().SingleAsync()).TotalQuantity == 10);
+        Assert.True((await service.WriteOffReservationAsync(reservationId, CancellationToken.None)).IsSuccess);
+        serviceDb.ChangeTracker.Clear();
+        Assert.True((await db.StockItems.AsNoTracking().SingleAsync()).AvailableQuantity == 5);
+        Assert.True((await db.StockItems.AsNoTracking().SingleAsync()).TotalQuantity == 5);
+        Assert.True((await service.SetStockAsync(productId, 10, CancellationToken.None)).IsSuccess);
+        serviceDb.ChangeTracker.Clear();
+        Assert.True((await db.StockItems.AsNoTracking().SingleAsync()).AvailableQuantity == 10);
+        Assert.True((await db.StockItems.AsNoTracking().SingleAsync()).TotalQuantity == 10);
+    }
+    
+    [Fact]
+    public async Task AvailableAndTotalQuantityIsCorrectWhenCancelThenSetStockToIncreasedQuantity()
+    {
+        await _fixture.ResetDatabaseAsync();
+        await using var db = CreateDbContext();
+        var productId = Guid.CreateVersion7();
+        db.StockItems.Add(new StockItem
+        {
+            Id = productId.SwapV7ToMSS(),
+            TotalQuantity = 10,
+            AvailableQuantity = 10,
+        });
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        await using var serviceDb = CreateDbContext();
+        var service = CreateService(serviceDb);
+
+        var reservationId = Guid.CreateVersion7();
+        Assert.True((await service.ReserveAsync(reservationId, [(productId, 5)], CancellationToken.None)).IsSuccess);
+        serviceDb.ChangeTracker.Clear();
+        Assert.True((await db.StockItems.AsNoTracking().SingleAsync()).AvailableQuantity == 5);
+        Assert.True((await db.StockItems.AsNoTracking().SingleAsync()).TotalQuantity == 10);
+        Assert.True((await service.CancelReservationAsync(reservationId, CancellationToken.None)).IsSuccess);
+        serviceDb.ChangeTracker.Clear();
+        Assert.True((await db.StockItems.AsNoTracking().SingleAsync()).AvailableQuantity == 10);
+        Assert.True((await db.StockItems.AsNoTracking().SingleAsync()).TotalQuantity == 10);
+        Assert.True((await service.SetStockAsync(productId, 20, CancellationToken.None)).IsSuccess);
+        serviceDb.ChangeTracker.Clear();
+        Assert.True((await db.StockItems.AsNoTracking().SingleAsync()).AvailableQuantity == 20);
+        Assert.True((await db.StockItems.AsNoTracking().SingleAsync()).TotalQuantity == 20);
     }
 
     private InventoryDbContext CreateDbContext()
