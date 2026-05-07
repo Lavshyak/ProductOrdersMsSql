@@ -20,11 +20,13 @@ public partial class InventoryService
             var rowsAffected = await dbContext.Database.ExecuteSqlRawAsync(
                 //language=sql
                 """
+                -- noinspection SqlResolveForFile @ variable/"@batchSize"
                 --DECLARE @cutoff AS DATETIMEOFFSET;
+                --DECLARE @batchSize INT;
                 ;DECLARE @reservationIdsAscMaybe AS dbo.GuidList;
                 -- (1) читаю потенциально подходящие Reservations
                 ;INSERT INTO @reservationIdsAscMaybe (Id)
-                    SELECT TOP 500 r.Id
+                    SELECT TOP (@batchSize) r.Id
                     FROM Reservations r WITH (READPAST)
                     WHERE r.CreatedAtUtc < @cutoff
                     ORDER BY r.Id;
@@ -74,7 +76,8 @@ public partial class InventoryService
                 
                 """,
                 [
-                    new SqlParameter("@cutoff", cutoffUtc)
+                    new SqlParameter("@cutoff", cutoffUtc),
+                    new SqlParameter("@batchSize", cleanupOptions.Value.BatchSize)
                 ],
                 cancellationToken
             );
