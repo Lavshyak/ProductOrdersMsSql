@@ -2,7 +2,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "InventoryService", "InventoryService", "{AABA8D23-8986-4765-A8A0-74B2ED8BBD9E}"
 	ProjectSection(SolutionItems) = preProject
-		InventoryService\moments.txt = InventoryService\moments.txt
 		InventoryService\docker-compose.yaml = InventoryService\docker-compose.yaml
 	EndProjectSection
 EndProject
